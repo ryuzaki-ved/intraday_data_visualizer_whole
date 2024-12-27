@@ -9,6 +9,7 @@ import type {
   TradingSession
 } from '@/types'
 import { API_ENDPOINTS, ERROR_MESSAGES } from '@/utils/constants'
+import { MockDataService } from './mockData'
 
 // Create axios instance with default configuration
 const apiClient: AxiosInstance = axios.create({
@@ -18,6 +19,9 @@ const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// Temporary flag to use mock data
+const USE_MOCK_DATA = true
 
 // Request interceptor for logging and error handling
 apiClient.interceptors.request.use(
@@ -81,18 +85,27 @@ async function handlePaginatedResponse<T>(response: AxiosResponse<PaginatedRespo
 export class ApiService {
   // Get available symbols
   static async getSymbols(): Promise<SymbolInfo[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getSymbols()
+    }
     const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(API_ENDPOINTS.SYMBOLS)
     return handleApiResponse(response)
   }
 
   // Get trading dates
   static async getTradingDates(): Promise<string[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getTradingDates()
+    }
     const response = await apiClient.get<ApiResponse<string[]>>(API_ENDPOINTS.TRADING_DATES)
     return handleApiResponse(response)
   }
 
   // Get expiry dates
   static async getExpiryDates(): Promise<string[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getExpiryDates()
+    }
     const response = await apiClient.get<ApiResponse<string[]>>(API_ENDPOINTS.EXPIRY_DATES)
     return handleApiResponse(response)
   }
@@ -157,6 +170,9 @@ export class ApiService {
 
   // Search symbols
   static async searchSymbols(query: string): Promise<SymbolInfo[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.searchSymbols(query)
+    }
     const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(
       `/symbols/search?q=${encodeURIComponent(query)}`
     )

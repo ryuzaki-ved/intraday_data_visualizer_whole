@@ -1,34 +1,193 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { Button, Card, CardHeader, CardTitle, CardContent, LoadingSpinner } from '@/components/ui'
+import Sidebar from '@/components/layout/Sidebar'
+import { useRecentSymbolsManager } from '@/hooks'
 
 function App() {
+  const [selectedSymbol, setSelectedSymbol] = useState<string>('')
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  const [selectedExpiry, setSelectedExpiry] = useState<string>('')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  
+  const { recentSymbols, addSymbol } = useRecentSymbolsManager()
+
+  const handleSymbolSelect = (symbol: string) => {
+    setSelectedSymbol(symbol)
+    addSymbol(symbol)
+  }
+
+  const handleDateSelect = (date: string) => {
+    setSelectedDate(date)
+  }
+
+  const handleExpirySelect = (expiry: string) => {
+    setSelectedExpiry(expiry)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
             <h1 className="text-xl font-semibold text-gray-900">
               Intraday History Data Analyzer
             </h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">
-                Data Analysis Dashboard
-              </span>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="text-sm text-gray-500">
+              {selectedSymbol && (
+                <span className="mr-4">
+                  Symbol: <span className="font-medium text-gray-900">{selectedSymbol}</span>
+                </span>
+              )}
+              {selectedDate && (
+                <span className="mr-4">
+                  Date: <span className="font-medium text-gray-900">{selectedDate}</span>
+                </span>
+              )}
             </div>
+            <Button variant="outline" size="sm">
+              Settings
+            </Button>
           </div>
         </div>
       </header>
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="card">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            Welcome to Intraday History Data Analyzer
-          </h2>
-          <p className="text-gray-600">
-            This application will provide interactive visualizations for your intraday market data.
-            The dashboard is currently being set up.
-          </p>
+
+      {/* Main Content */}
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Sidebar */}
+        {!sidebarCollapsed && (
+          <Sidebar
+            onSymbolSelect={handleSymbolSelect}
+            onDateSelect={handleDateSelect}
+            onExpirySelect={handleExpirySelect}
+            selectedSymbol={selectedSymbol}
+            selectedDate={selectedDate}
+            selectedExpiry={selectedExpiry}
+          />
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 p-6 overflow-auto">
+          {!selectedSymbol ? (
+            <div className="max-w-2xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Welcome to Intraday History Data Analyzer</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-gray-600">
+                      This application provides interactive visualizations for your intraday market data.
+                      To get started:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2 text-gray-600">
+                      <li>Select a symbol from the sidebar</li>
+                      <li>Choose a trading date</li>
+                      <li>Optionally select an expiry date for F&O data</li>
+                      <li>View charts and analysis</li>
+                    </ol>
+                    
+                    {recentSymbols.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Recent Symbols</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {recentSymbols.slice(0, 5).map((symbol) => (
+                            <Button
+                              key={symbol}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSymbolSelect(symbol)}
+                            >
+                              {symbol}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Data Summary Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Data Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-primary-600">
+                        {selectedSymbol}
+                      </div>
+                      <div className="text-sm text-gray-500">Selected Symbol</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {selectedDate || 'Not selected'}
+                      </div>
+                      <div className="text-sm text-gray-500">Trading Date</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-900">
+                        {selectedExpiry || 'Not selected'}
+                      </div>
+                      <div className="text-sm text-gray-500">Expiry Date</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Charts Placeholder */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Charts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <LoadingSpinner size="lg" />
+                      <p className="mt-4 text-gray-600">Loading charts...</p>
+                      <p className="text-sm text-gray-500">
+                        Charts will be implemented in the next phase
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Data Table Placeholder */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Data Table</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <p className="text-gray-600">Data table will be implemented</p>
+                      <p className="text-sm text-gray-500">
+                        Showing tick data and OHLCV data
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   )
 }
