@@ -137,15 +137,32 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
             shape={<CustomCandlestick />}
           />
           
-          {/* Volume bars */}
-          {showVolume && (
-            <Bar
-              dataKey="volumeBar"
-              fill="#8b5cf6"
-              opacity={0.3}
-              yAxisId={1}
-            />
-          )}
+                     {/* Volume bars */}
+           {showVolume && (
+             <>
+               <YAxis
+                 yAxisId={1}
+                 orientation="right"
+                 axisLine={false}
+                 tickLine={false}
+                 tick={{ fontSize: 12, fill: '#6b7280' }}
+                 tickFormatter={(value) => {
+                   if (value >= 1000000) {
+                     return `${(value / 1000000).toFixed(1)}M`
+                   } else if (value >= 1000) {
+                     return `${(value / 1000).toFixed(1)}K`
+                   }
+                   return value.toString()
+                 }}
+               />
+               <Bar
+                 dataKey="volumeBar"
+                 fill="#8b5cf6"
+                 opacity={0.3}
+                 yAxisId={1}
+               />
+             </>
+           )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

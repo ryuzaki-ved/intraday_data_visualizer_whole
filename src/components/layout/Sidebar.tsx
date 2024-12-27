@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { clsx } from 'clsx'
 import { Card, CardContent } from '@/components/ui'
-import { useSymbols, useTradingDates, useExpiryDates } from '@/hooks'
+import { useExpiryDates, useTradingDatesForExpiry, useSymbolsForDate } from '@/hooks'
 import { LoadingSpinner } from '@/components/ui'
 
 interface SidebarProps {
@@ -23,12 +23,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   selectedDate,
   selectedExpiry
 }) => {
-  const [activeTab, setActiveTab] = useState<'symbols' | 'dates' | 'expiry'>('symbols')
+  const [activeTab, setActiveTab] = useState<'dates' | 'symbols'>('dates')
   const [searchTerm, setSearchTerm] = useState('')
   
-  const { data: symbols, loading: symbolsLoading, error: symbolsError } = useSymbols()
-  const { data: tradingDates, loading: datesLoading, error: datesError } = useTradingDates()
   const { data: expiryDates, loading: expiryLoading, error: expiryError } = useExpiryDates()
+  const { data: tradingDates, loading: datesLoading, error: datesError } = useTradingDatesForExpiry(selectedExpiry || '')
+  const { data: symbols, loading: symbolsLoading, error: symbolsError } = useSymbolsForDate(selectedDate || '')
 
   const filteredSymbols = symbols?.filter(symbol =>
     symbol.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,110 +36,126 @@ const Sidebar: React.FC<SidebarProps> = ({
   ) || []
 
   const tabs = [
-    { id: 'symbols', label: 'Symbols', count: symbols?.length || 0 },
-    { id: 'dates', label: 'Trading Dates', count: tradingDates?.length || 0 },
-    { id: 'expiry', label: 'Expiry Dates', count: expiryDates?.length || 0 }
+    { id: 'dates', label: 'Select Date', count: tradingDates?.length || 0 },
+    { id: 'symbols', label: 'Symbols', count: symbols?.length || 0 }
   ] as const
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'dates':
+        return (
+          <div className="space-y-4">
+            {/* Expiry Selection */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Select Expiry</h3>
+              {expiryLoading ? (
+                <div className="flex justify-center py-4">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : expiryError ? (
+                <div className="text-sm text-red-600 p-2">
+                  Error loading expiry dates: {expiryError}
+                </div>
+              ) : (
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {expiryDates?.map((expiryData) => (
+                    <button
+                      key={expiryData.expiry}
+                      onClick={() => onExpirySelect?.(expiryData.expiry)}
+                      className={clsx(
+                        'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
+                        selectedExpiry === expiryData.expiry
+                          ? 'bg-primary-100 text-primary-700'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      )}
+                    >
+                      {expiryData.expiry}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Trading Dates Selection */}
+            {selectedExpiry && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">Select Trading Date</h3>
+                {datesLoading ? (
+                  <div className="flex justify-center py-4">
+                    <LoadingSpinner size="md" />
+                  </div>
+                ) : datesError ? (
+                  <div className="text-sm text-red-600 p-2">
+                    Error loading dates: {datesError}
+                  </div>
+                ) : (
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {tradingDates?.map((date) => (
+                      <button
+                        key={date}
+                        onClick={() => onDateSelect?.(date)}
+                        className={clsx(
+                          'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
+                          selectedDate === date
+                            ? 'bg-primary-100 text-primary-700'
+                            : 'hover:bg-gray-100 text-gray-700'
+                        )}
+                      >
+                        {date}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )
+
       case 'symbols':
         return (
           <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="Search symbols..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            
-            {symbolsLoading ? (
-              <div className="flex justify-center py-4">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : symbolsError ? (
-              <div className="text-sm text-red-600 p-2">
-                Error loading symbols: {symbolsError}
+            {!selectedDate ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>Please select a date first to view available symbols</p>
               </div>
             ) : (
-              <div className="space-y-1 max-h-96 overflow-y-auto">
-                {filteredSymbols.map((symbol) => (
-                  <button
-                    key={symbol.symbol}
-                    onClick={() => onSymbolSelect?.(symbol.symbol)}
-                    className={clsx(
-                      'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
-                      selectedSymbol === symbol.symbol
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'hover:bg-gray-100 text-gray-700'
-                    )}
-                  >
-                    <div className="font-medium">{symbol.symbol}</div>
-                    <div className="text-xs text-gray-500 truncate">{symbol.name}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-
-      case 'dates':
-        return (
-          <div className="space-y-1 max-h-96 overflow-y-auto">
-            {datesLoading ? (
-              <div className="flex justify-center py-4">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : datesError ? (
-              <div className="text-sm text-red-600 p-2">
-                Error loading dates: {datesError}
-              </div>
-            ) : (
-              tradingDates?.map((date) => (
-                <button
-                  key={date}
-                  onClick={() => onDateSelect?.(date)}
-                  className={clsx(
-                    'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
-                    selectedDate === date
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  )}
-                >
-                  {date}
-                </button>
-              ))
-            )}
-          </div>
-        )
-
-      case 'expiry':
-        return (
-          <div className="space-y-1 max-h-96 overflow-y-auto">
-            {expiryLoading ? (
-              <div className="flex justify-center py-4">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : expiryError ? (
-              <div className="text-sm text-red-600 p-2">
-                Error loading expiry dates: {expiryError}
-              </div>
-            ) : (
-              expiryDates?.map((expiry) => (
-                <button
-                  key={expiry}
-                  onClick={() => onExpirySelect?.(expiry)}
-                  className={clsx(
-                    'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
-                    selectedExpiry === expiry
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  )}
-                >
-                  {expiry}
-                </button>
-              ))
+              <>
+                <input
+                  type="text"
+                  placeholder="Search symbols..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                
+                {symbolsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <LoadingSpinner size="md" />
+                  </div>
+                ) : symbolsError ? (
+                  <div className="text-sm text-red-600 p-2">
+                    Error loading symbols: {symbolsError}
+                  </div>
+                ) : (
+                  <div className="space-y-1 max-h-96 overflow-y-auto">
+                    {filteredSymbols.map((symbol) => (
+                      <button
+                        key={symbol.symbol}
+                        onClick={() => onSymbolSelect?.(symbol.symbol)}
+                        className={clsx(
+                          'w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-150',
+                          selectedSymbol === symbol.symbol
+                            ? 'bg-primary-100 text-primary-700'
+                            : 'hover:bg-gray-100 text-gray-700'
+                        )}
+                      >
+                        <div className="font-medium">{symbol.symbol}</div>
+                        <div className="text-xs text-gray-500 truncate">{symbol.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )

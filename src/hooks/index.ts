@@ -6,8 +6,9 @@ export * from './useLocalStorage'
 // Re-export commonly used hooks
 export {
   useSymbols,
-  useTradingDates,
   useExpiryDates,
+  useTradingDatesForExpiry,
+  useSymbolsForDate,
   useTickData,
   useOHLCVData,
   useTradingSessions,

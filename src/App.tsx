@@ -19,10 +19,13 @@ function App() {
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date)
+    setSelectedSymbol('') // Clear symbol when date changes
   }
 
   const handleExpirySelect = (expiry: string) => {
     setSelectedExpiry(expiry)
+    setSelectedDate('') // Clear date when expiry changes
+    setSelectedSymbol('') // Clear symbol when expiry changes
   }
 
   return (

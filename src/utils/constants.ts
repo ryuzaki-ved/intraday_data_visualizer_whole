@@ -85,7 +85,6 @@ export const API_ENDPOINTS = {
   TICK_DATA: '/tick-data',
   OHLCV_DATA: '/ohlcv',
   SYMBOLS: '/symbols',
-  TRADING_DATES: '/trading-dates',
   EXPIRY_DATES: '/expiry-dates'
 }
 

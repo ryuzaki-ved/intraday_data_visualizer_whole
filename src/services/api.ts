@@ -92,21 +92,30 @@ export class ApiService {
     return handleApiResponse(response)
   }
 
-  // Get trading dates
-  static async getTradingDates(): Promise<string[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getTradingDates()
-    }
-    const response = await apiClient.get<ApiResponse<string[]>>(API_ENDPOINTS.TRADING_DATES)
-    return handleApiResponse(response)
-  }
-
-  // Get expiry dates
-  static async getExpiryDates(): Promise<string[]> {
+  // Get expiry dates with trading dates
+  static async getExpiryDates(): Promise<{ expiry: string; tradingDates: string[] }[]> {
     if (USE_MOCK_DATA) {
       return MockDataService.getExpiryDates()
     }
-    const response = await apiClient.get<ApiResponse<string[]>>(API_ENDPOINTS.EXPIRY_DATES)
+    const response = await apiClient.get<ApiResponse<{ expiry: string; tradingDates: string[] }[]>>(API_ENDPOINTS.EXPIRY_DATES)
+    return handleApiResponse(response)
+  }
+
+  // Get trading dates for specific expiry
+  static async getTradingDatesForExpiry(expiry: string): Promise<string[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getTradingDatesForExpiry(expiry)
+    }
+    const response = await apiClient.get<ApiResponse<string[]>>(`${API_ENDPOINTS.EXPIRY_DATES}/${expiry}/trading-dates`)
+    return handleApiResponse(response)
+  }
+
+  // Get symbols for specific date
+  static async getSymbolsForDate(date: string): Promise<SymbolInfo[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getSymbolsForDate(date)
+    }
+    const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(`${API_ENDPOINTS.SYMBOLS}/date/${date}`)
     return handleApiResponse(response)
   }
 

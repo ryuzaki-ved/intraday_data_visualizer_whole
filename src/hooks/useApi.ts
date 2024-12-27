@@ -43,14 +43,29 @@ export function useSymbols() {
   return useApiCall(() => ApiService.getSymbols(), [])
 }
 
-// Hook for trading dates
-export function useTradingDates() {
-  return useApiCall(() => ApiService.getTradingDates(), [])
-}
-
 // Hook for expiry dates
 export function useExpiryDates() {
   return useApiCall(() => ApiService.getExpiryDates(), [])
+}
+
+// Hook for trading dates for specific expiry
+export function useTradingDatesForExpiry(expiry: string) {
+  const apiCall = useCallback(() => {
+    if (!expiry) return Promise.resolve([])
+    return ApiService.getTradingDatesForExpiry(expiry)
+  }, [expiry])
+
+  return useApiCall(apiCall, [expiry])
+}
+
+// Hook for symbols for specific date
+export function useSymbolsForDate(date: string) {
+  const apiCall = useCallback(() => {
+    if (!date) return Promise.resolve([])
+    return ApiService.getSymbolsForDate(date)
+  }, [date])
+
+  return useApiCall(apiCall, [date])
 }
 
 // Hook for tick data with parameters
