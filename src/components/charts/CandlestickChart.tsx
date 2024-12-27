@@ -106,10 +106,31 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     )
   }
 
+  // Validate chart data
+  const validChartData = chartData.filter(item => 
+    item && 
+    typeof item.high === 'number' && 
+    typeof item.low === 'number' && 
+    typeof item.open === 'number' && 
+    typeof item.close === 'number' &&
+    !isNaN(item.high) && !isNaN(item.low) && !isNaN(item.open) && !isNaN(item.close)
+  )
+
+  if (validChartData.length === 0) {
+    return (
+      <div className={`flex items-center justify-center bg-gray-50 rounded-lg ${className}`} style={{ height }}>
+        <div className="text-center">
+          <p className="text-gray-600">Invalid data format</p>
+          <p className="text-sm text-gray-500">Unable to render chart</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={className}>
       <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+        <ComposedChart data={validChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           
           <XAxis

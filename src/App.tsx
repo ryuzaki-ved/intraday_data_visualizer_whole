@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Button, Card, CardHeader, CardTitle, CardContent, LoadingSpinner } from '@/components/ui'
+import { Button, Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
 import Sidebar from '@/components/layout/Sidebar'
 import ChartContainer from '@/components/charts/ChartContainer'
 import { useRecentSymbolsManager } from '@/hooks'
@@ -83,6 +83,7 @@ function App() {
 
         {/* Main Content Area */}
         <div className="flex-1 p-6 overflow-auto">
+          {console.log('App render:', { selectedSymbol, selectedDate, selectedExpiry })}
           {!selectedSymbol ? (
             <div className="max-w-2xl mx-auto">
               <Card>

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui'
-import { LoadingSpinner, Button, Select } from '@/components/ui'
+import { LoadingSpinner, Select } from '@/components/ui'
 import CandlestickChart from './CandlestickChart'
 import LineChart from './LineChart'
 import VolumeChart from './VolumeChart'
 import { useOHLCVData, useTickData } from '@/hooks'
-import type { OHLCVDataPoint, TickDataPoint } from '@/types'
 
 interface ChartContainerProps {
   symbol: string
@@ -27,14 +26,14 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     data: ohlcvData, 
     loading: ohlcvLoading, 
     error: ohlcvError 
-  } = useOHLCVData(symbol, timeframe, { date })
+  } = useOHLCVData(symbol, timeframe, { startDate: date, endDate: date })
 
   // Fetch tick data
   const { 
     data: tickData, 
     loading: tickLoading, 
     error: tickError 
-  } = useTickData({ symbol, date })
+  } = useTickData({ symbol, startDate: date, endDate: date })
 
   const chartOptions = [
     { value: 'candlestick', label: 'Candlestick' },
@@ -55,6 +54,9 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   ]
 
   const renderChart = () => {
+    console.log('ChartContainer renderChart called:', { dataType, chartType, symbol, date })
+    console.log('OHLCV data:', ohlcvData?.length, 'Tick data:', tickData?.length)
+    
     if (dataType === 'ohlcv') {
       if (ohlcvLoading) {
         return (
@@ -88,13 +90,29 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
 
       switch (chartType) {
         case 'candlestick':
-          return <CandlestickChart data={ohlcvData} height={400} />
+          return (
+            <div className="relative">
+              <CandlestickChart data={ohlcvData} height={400} />
+            </div>
+          )
         case 'line':
-          return <LineChart data={ohlcvData} dataKey="close" height={400} title="Price Chart" />
+          return (
+            <div className="relative">
+              <LineChart data={ohlcvData} dataKey="close" height={400} title="Price Chart" />
+            </div>
+          )
         case 'volume':
-          return <VolumeChart data={ohlcvData} height={300} title="Volume Chart" />
+          return (
+            <div className="relative">
+              <VolumeChart data={ohlcvData} height={300} title="Volume Chart" />
+            </div>
+          )
         default:
-          return <CandlestickChart data={ohlcvData} height={400} />
+          return (
+            <div className="relative">
+              <CandlestickChart data={ohlcvData} height={400} />
+            </div>
+          )
       }
     } else {
       if (tickLoading) {
@@ -129,11 +147,23 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
 
       switch (chartType) {
         case 'line':
-          return <LineChart data={tickData} dataKey="price" height={400} title="Price Chart" />
+          return (
+            <div className="relative">
+              <LineChart data={tickData} dataKey="price" height={400} title="Price Chart" />
+            </div>
+          )
         case 'volume':
-          return <LineChart data={tickData} dataKey="turnover" height={300} title="Turnover Chart" />
+          return (
+            <div className="relative">
+              <LineChart data={tickData} dataKey="trnvr" height={300} title="Turnover Chart" />
+            </div>
+          )
         default:
-          return <LineChart data={tickData} dataKey="price" height={400} title="Price Chart" />
+          return (
+            <div className="relative">
+              <LineChart data={tickData} dataKey="price" height={400} title="Price Chart" />
+            </div>
+          )
       }
     }
   }
@@ -147,7 +177,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             <Select
               options={dataTypeOptions}
               value={dataType}
-              onChange={setDataType}
+              onChange={(value) => setDataType(value as 'ohlcv' | 'tick')}
               className="w-32"
             />
             {dataType === 'ohlcv' && (
@@ -161,7 +191,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
             <Select
               options={chartOptions}
               value={chartType}
-              onChange={setChartType}
+              onChange={(value) => setChartType(value as 'candlestick' | 'line' | 'volume')}
               className="w-40"
             />
           </div>
