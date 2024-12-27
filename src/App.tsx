@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Button, Card, CardHeader, CardTitle, CardContent, LoadingSpinner } from '@/components/ui'
 import Sidebar from '@/components/layout/Sidebar'
+import ChartContainer from '@/components/charts/ChartContainer'
 import { useRecentSymbolsManager } from '@/hooks'
 
 function App() {
@@ -150,23 +151,13 @@ function App() {
                 </CardContent>
               </Card>
 
-              {/* Charts Placeholder */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Charts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <LoadingSpinner size="lg" />
-                      <p className="mt-4 text-gray-600">Loading charts...</p>
-                      <p className="text-sm text-gray-500">
-                        Charts will be implemented in the next phase
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Charts */}
+              {selectedDate && (
+                <ChartContainer
+                  symbol={selectedSymbol}
+                  date={selectedDate}
+                />
+              )}
 
               {/* Data Table Placeholder */}
               <Card>

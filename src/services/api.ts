@@ -112,6 +112,9 @@ export class ApiService {
 
   // Get tick data
   static async getTickData(params: DataQueryParams): Promise<TickDataPoint[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getTickData(params.symbol)
+    }
     const response = await apiClient.get<ApiResponse<TickDataPoint[]>>(
       `${API_ENDPOINTS.TICK_DATA}/${params.symbol}`,
       { params }
@@ -137,6 +140,9 @@ export class ApiService {
     timeframe: string,
     params: Omit<DataQueryParams, 'symbol'>
   ): Promise<OHLCVDataPoint[]> {
+    if (USE_MOCK_DATA) {
+      return MockDataService.getOHLCVData(symbol, timeframe)
+    }
     const response = await apiClient.get<ApiResponse<OHLCVDataPoint[]>>(
       `${API_ENDPOINTS.OHLCV_DATA}/${symbol}/${timeframe}`,
       { params }

@@ -1,4 +1,4 @@
-import type { SymbolInfo } from '@/types'
+import type { SymbolInfo, TickDataPoint, OHLCVDataPoint } from '@/types'
 
 // Mock symbols data
 const mockSymbols: SymbolInfo[] = [
@@ -23,6 +23,62 @@ const mockSymbols: SymbolInfo[] = [
   { symbol: 'AXISBANK_EQ', name: 'Axis Bank Ltd', type: 'equity', exchange: 'NSE' },
   { symbol: 'ASIANPAINT_EQ', name: 'Asian Paints Ltd', type: 'equity', exchange: 'NSE' }
 ]
+
+// Generate mock OHLCV data
+function generateMockOHLCVData(symbol: string, basePrice: number = 24000): OHLCVDataPoint[] {
+  const data: OHLCVDataPoint[] = []
+  const startTime = new Date('2024-08-01T09:15:00')
+  
+  for (let i = 0; i < 75; i++) { // 75 minutes of data
+    const timestamp = new Date(startTime.getTime() + i * 60 * 1000)
+    const open = basePrice + (Math.random() - 0.5) * 100
+    const high = open + Math.random() * 50
+    const low = open - Math.random() * 50
+    const close = low + Math.random() * (high - low)
+    const volume = Math.floor(Math.random() * 1000000) + 100000
+    
+    data.push({
+      symbol,
+      timestamp: timestamp.toISOString(),
+      open: Math.round(open * 100) / 100,
+      high: Math.round(high * 100) / 100,
+      low: Math.round(low * 100) / 100,
+      close: Math.round(close * 100) / 100,
+      volume,
+      granularity: '1min',
+      dataType: 'equity'
+    })
+  }
+  
+  return data
+}
+
+// Generate mock tick data
+function generateMockTickData(symbol: string, basePrice: number = 24000): TickDataPoint[] {
+  const data: TickDataPoint[] = []
+  const startTime = new Date('2024-08-01T09:15:00')
+  
+  for (let i = 0; i < 1000; i++) { // 1000 ticks
+    const timestamp = new Date(startTime.getTime() + i * 1000) // 1 second intervals
+    const price = basePrice + (Math.random() - 0.5) * 200
+    const qty = Math.floor(Math.random() * 1000) + 100
+    const trnvr = price * qty
+    const cumTrnvr = (data[i - 1]?.cumTrnvr || 0) + trnvr
+    
+    data.push({
+      symbol,
+      timestamp: timestamp.toISOString(),
+      price: Math.round(price * 100) / 100,
+      qty,
+      trnvr: Math.round(trnvr),
+      cumTrnvr: Math.round(cumTrnvr),
+      granularity: 'tick',
+      dataType: 'equity'
+    })
+  }
+  
+  return data
+}
 
 // Mock trading dates
 const mockTradingDates = [
@@ -94,5 +150,17 @@ export class MockDataService {
       symbol.symbol.toLowerCase().includes(lowercaseQuery) ||
       symbol.name.toLowerCase().includes(lowercaseQuery)
     )
+  }
+
+  static async getOHLCVData(symbol: string, timeframe: string): Promise<OHLCVDataPoint[]> {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    const basePrice = symbol.includes('NIFTY') ? 24000 : 1000
+    return generateMockOHLCVData(symbol, basePrice)
+  }
+
+  static async getTickData(symbol: string): Promise<TickDataPoint[]> {
+    await new Promise(resolve => setTimeout(resolve, 600))
+    const basePrice = symbol.includes('NIFTY') ? 24000 : 1000
+    return generateMockTickData(symbol, basePrice)
   }
 } 
