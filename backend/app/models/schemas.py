@@ -3,134 +3,116 @@ from typing import List, Optional, Union
 from datetime import datetime
 from enum import Enum
 
+class DataGranularity(str, Enum):
+    TICK = "tick"
+    FIVE_SECOND = "5s"
+    ONE_MINUTE = "1min"
+    FIVE_MINUTE = "5min"
+    FIFTEEN_MINUTE = "15min"
+    ONE_HOUR = "1hour"
+    DAILY = "daily"
 
 class DataType(str, Enum):
     EQUITY = "equity"
     FNO_TICK = "fno_tick"
-    FUTURES_TICK = "futures_tick"
+    FNO_OHLCV = "fno_ohlcv"
+    FUTURES = "futures"
     INDEX = "index"
-
 
 class OptionType(str, Enum):
     CE = "CE"
     PE = "PE"
 
-
-class Granularity(str, Enum):
-    TICK = "tick"
-    FIVE_SEC = "5s"
-    ONE_MIN = "1min"
-    FIVE_MIN = "5min"
-    FIFTEEN_MIN = "15min"
-    ONE_HOUR = "1hour"
-    DAILY = "daily"
-
-
-# Base Models
-class SymbolInfo(BaseModel):
-    symbol: str
-    name: str
-    type: DataType
-    exchange: str
-    strike_price: Optional[int] = None
-    option_type: Optional[OptionType] = None
-
-
-class TickDataPoint(BaseModel):
+class BaseMarketData(BaseModel):
     symbol: str
     timestamp: datetime
-    price: float
-    qty: int
-    trnvr: float
-    cum_trnvr: float
-    granularity: Granularity = Granularity.TICK
-    data_type: DataType = DataType.EQUITY
+    data_type: DataType
+    granularity: DataGranularity
 
+class TickDataPoint(BaseModel):
+    timestamp: datetime
+    price: float
+    quantity: int
+    trnvr: float
 
 class OHLCVDataPoint(BaseModel):
-    symbol: str
     timestamp: datetime
     open: float
     high: float
     low: float
     close: float
     volume: int
-    granularity: Granularity
-    data_type: DataType = DataType.EQUITY
 
-
-# API Request Models
-class DataQueryParams(BaseModel):
+class SymbolInfo(BaseModel):
     symbol: str
-    date: Optional[str] = None
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
-    limit: Optional[int] = Field(default=1000, le=10000)
-    offset: Optional[int] = Field(default=0, ge=0)
-
-
-class OHLCVQueryParams(BaseModel):
-    symbol: str
-    timeframe: str
-    date: Optional[str] = None
-    start_time: Optional[str] = None
-    end_time: Optional[str] = None
-    limit: Optional[int] = Field(default=1000, le=10000)
-    offset: Optional[int] = Field(default=0, ge=0)
-
-
-# API Response Models
-class ApiResponse(BaseModel):
-    success: bool
-    data: Union[List, dict, str, int, float]
-    message: Optional[str] = None
-    error: Optional[str] = None
-
-
-class PaginationInfo(BaseModel):
-    page: int
-    limit: int
-    total: int
-    total_pages: int
-    has_next: bool
-    has_prev: bool
-
-
-class PaginatedResponse(BaseModel):
-    success: bool
-    data: List[Union[TickDataPoint, OHLCVDataPoint, SymbolInfo]]
-    pagination: PaginationInfo
-    message: Optional[str] = None
-    error: Optional[str] = None
-
-
-class DataSummary(BaseModel):
-    symbol: str
-    date: str
-    tick_count: int
-    ohlcv_count: int
-    start_time: datetime
-    end_time: datetime
-    total_volume: int
-    total_turnover: float
-
+    name: str
+    type: str
+    expiryDate: Optional[str] = None
+    strikePrice: Optional[float] = None
+    optionType: Optional[OptionType] = None
+    hasTickData: bool = False
+    hasOHLCVData: bool = False
+    availableTimeframes: List[str] = []
 
 class TradingSession(BaseModel):
-    symbol: str
     date: str
-    session_start: datetime
-    session_end: datetime
-    pre_market_start: Optional[datetime] = None
-    pre_market_end: Optional[datetime] = None
-    market_start: datetime
-    market_end: datetime
-    post_market_start: Optional[datetime] = None
-    post_market_end: Optional[datetime] = None
+    start_time: str
+    end_time: str
+    is_active: bool = False
 
+class ChartDataPoint(BaseModel):
+    timestamp: datetime
+    value: float
+    volume: Optional[int] = None
 
-# Error Models
-class ErrorResponse(BaseModel):
-    success: bool = False
-    error: str
+class CandlestickDataPoint(BaseModel):
+    timestamp: datetime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+
+class VolumeProfilePoint(BaseModel):
+    price_level: float
+    volume: int
+    trades: int
+
+class TechnicalIndicator(BaseModel):
+    name: str
+    values: List[float]
+    parameters: dict
+
+class ApiResponse(BaseModel):
+    success: bool
+    data: Optional[Union[List, dict]] = None
     message: Optional[str] = None
-    details: Optional[dict] = None 
+    error: Optional[str] = None
+
+class PaginatedResponse(BaseModel):
+    data: List[dict]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+class DataQueryParams(BaseModel):
+    symbol: str
+    start_date: str
+    end_date: str
+    granularity: Optional[DataGranularity] = DataGranularity.ONE_MINUTE
+    data_type: Optional[DataType] = DataType.EQUITY
+
+class FilterOptions(BaseModel):
+    symbols: Optional[List[str]] = None
+    date_range: Optional[tuple[str, str]] = None
+    data_types: Optional[List[DataType]] = None
+    granularities: Optional[List[DataGranularity]] = None
+
+class ExpiryDateResponse(BaseModel):
+    expiry: str
+    tradingDates: List[str]
+
+class TradingDateResponse(BaseModel):
+    date: str
+    expiry: str 

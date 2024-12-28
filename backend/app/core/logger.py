@@ -1,50 +1,35 @@
 import logging
 import sys
-from pathlib import Path
-from app.core.config import settings
+from typing import Optional
 
-# Create logs directory
-logs_dir = Path("logs")
-logs_dir.mkdir(exist_ok=True)
-
-# Configure logging
-def setup_logger():
-    """Setup application logger"""
+def setup_logger(name: str, level: Optional[str] = None) -> logging.Logger:
+    """Setup logger with proper configuration"""
     
     # Create logger
-    logger = logging.getLogger("intraday_analyzer")
-    logger.setLevel(logging.INFO)
+    logger = logging.getLogger(name)
     
-    # Create formatters
-    detailed_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
-    )
-    simple_formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(message)s"
-    )
+    # Set level
+    log_level = level or "INFO"
+    logger.setLevel(getattr(logging, log_level.upper()))
     
-    # Console handler
+    # Avoid adding handlers if they already exist
+    if logger.handlers:
+        return logger
+    
+    # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(simple_formatter)
+    console_handler.setLevel(logging.DEBUG)
     
-    # File handler for all logs
-    file_handler = logging.FileHandler(logs_dir / "app.log")
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(detailed_formatter)
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
     
-    # File handler for errors only
-    error_handler = logging.FileHandler(logs_dir / "error.log")
-    error_handler.setLevel(logging.ERROR)
-    error_handler.setFormatter(detailed_formatter)
+    # Add formatter to handler
+    console_handler.setFormatter(formatter)
     
-    # Add handlers to logger
+    # Add handler to logger
     logger.addHandler(console_handler)
-    logger.addHandler(file_handler)
-    logger.addHandler(error_handler)
     
-    return logger
-
-
-# Create logger instance
-logger = setup_logger() 
+    return logger 

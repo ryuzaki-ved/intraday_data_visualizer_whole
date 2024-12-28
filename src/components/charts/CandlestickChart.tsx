@@ -26,6 +26,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   className
 }) => {
   const chartData = useMemo(() => {
+    if (!data || data.length === 0) return []
+    
     return data.map(item => ({
       ...item,
       time: new Date(item.timestamp),

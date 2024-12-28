@@ -1,29 +1,25 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import type { 
-  ApiResponse, 
-  PaginatedResponse, 
-  DataQueryParams,
+  SymbolInfo, 
+  OHLCVDataPoint, 
   TickDataPoint,
-  OHLCVDataPoint,
-  SymbolInfo,
-  TradingSession
+  ExpiryDateResponse,
+  DataQueryParams 
 } from '@/types'
-import { API_ENDPOINTS, ERROR_MESSAGES } from '@/utils/constants'
-import { MockDataService } from './mockData'
 
-// Create axios instance with default configuration
-const apiClient: AxiosInstance = axios.create({
-  baseURL: API_ENDPOINTS.BASE_URL,
+// API Configuration
+const API_BASE_URL = 'http://localhost:8000'
+
+// Create axios instance
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-// Temporary flag to use mock data
-const USE_MOCK_DATA = true
-
-// Request interceptor for logging and error handling
+// Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`)
@@ -35,178 +31,118 @@ apiClient.interceptors.request.use(
   }
 )
 
-// Response interceptor for error handling
+// Response interceptor
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log(`API Response: ${response.status} ${response.config.url}`)
     return response
   },
   (error) => {
-    console.error('API Response Error:', error)
-    
-    if (error.response) {
-      // Server responded with error status
-      const message = error.response.data?.message || ERROR_MESSAGES.NETWORK_ERROR
-      return Promise.reject(new Error(message))
-    } else if (error.request) {
-      // Request was made but no response received
-      return Promise.reject(new Error(ERROR_MESSAGES.NETWORK_ERROR))
-    } else {
-      // Something else happened
-      return Promise.reject(new Error(error.message))
-    }
+    console.error('API Response Error:', error.response?.data || error.message)
+    return Promise.reject(error)
   }
 )
 
-// Generic API response handler
-async function handleApiResponse<T>(response: AxiosResponse<ApiResponse<T>>): Promise<T> {
-  if (response.data.success) {
-    return response.data.data
-  } else {
-    throw new Error(response.data.error || response.data.message || ERROR_MESSAGES.DATA_LOAD_FAILED)
-  }
-}
-
-// Generic paginated response handler
-async function handlePaginatedResponse<T>(response: AxiosResponse<PaginatedResponse<T>>): Promise<{
-  data: T[]
-  pagination: PaginatedResponse<T>['pagination']
-}> {
-  if (response.data.success) {
-    return {
-      data: response.data.data,
-      pagination: response.data.pagination
-    }
-  } else {
-    throw new Error(response.data.error || response.data.message || ERROR_MESSAGES.DATA_LOAD_FAILED)
-  }
-}
-
-// API service class
 export class ApiService {
-  // Get available symbols
-  static async getSymbols(): Promise<SymbolInfo[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getSymbols()
+  // Expiry dates
+  static async getExpiryDates(): Promise<ExpiryDateResponse[]> {
+    try {
+      const response = await apiClient.get<ExpiryDateResponse[]>('/api/expiry-dates')
+      return response.data
+    } catch (error) {
+      console.error('Error fetching expiry dates:', error)
+      throw error
     }
-    const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(API_ENDPOINTS.SYMBOLS)
-    return handleApiResponse(response)
   }
 
-  // Get expiry dates with trading dates
-  static async getExpiryDates(): Promise<{ expiry: string; tradingDates: string[] }[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getExpiryDates()
-    }
-    const response = await apiClient.get<ApiResponse<{ expiry: string; tradingDates: string[] }[]>>(API_ENDPOINTS.EXPIRY_DATES)
-    return handleApiResponse(response)
-  }
-
-  // Get trading dates for specific expiry
+  // Trading dates for expiry
   static async getTradingDatesForExpiry(expiry: string): Promise<string[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getTradingDatesForExpiry(expiry)
+    if (!expiry) return []
+    
+    try {
+      const response = await apiClient.get<string[]>(`/api/trading-dates/${expiry}`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching trading dates:', error)
+      throw error
     }
-    const response = await apiClient.get<ApiResponse<string[]>>(`${API_ENDPOINTS.EXPIRY_DATES}/${expiry}/trading-dates`)
-    return handleApiResponse(response)
   }
 
-  // Get symbols for specific date
+  // Symbols for date
   static async getSymbolsForDate(date: string): Promise<SymbolInfo[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getSymbolsForDate(date)
+    if (!date) return []
+    
+    try {
+      const response = await apiClient.get<SymbolInfo[]>(`/api/symbols/${date}`)
+      return response.data
+    } catch (error) {
+      console.error('Error fetching symbols:', error)
+      throw error
     }
-    const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(`${API_ENDPOINTS.SYMBOLS}/date/${date}`)
-    return handleApiResponse(response)
-  }
-
-  // Get tick data
-  static async getTickData(params: DataQueryParams): Promise<TickDataPoint[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getTickData(params.symbol)
-    }
-    const response = await apiClient.get<ApiResponse<TickDataPoint[]>>(
-      `${API_ENDPOINTS.TICK_DATA}/${params.symbol}`,
-      { params }
-    )
-    return handleApiResponse(response)
-  }
-
-  // Get tick data with pagination
-  static async getTickDataPaginated(params: DataQueryParams): Promise<{
-    data: TickDataPoint[]
-    pagination: PaginatedResponse<TickDataPoint>['pagination']
-  }> {
-    const response = await apiClient.get<PaginatedResponse<TickDataPoint>>(
-      `${API_ENDPOINTS.TICK_DATA}/${params.symbol}/paginated`,
-      { params }
-    )
-    return handlePaginatedResponse(response)
-  }
-
-  // Get OHLCV data
-  static async getOHLCVData(
-    symbol: string,
-    timeframe: string,
-    params: Omit<DataQueryParams, 'symbol'>
-  ): Promise<OHLCVDataPoint[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.getOHLCVData(symbol, timeframe)
-    }
-    const response = await apiClient.get<ApiResponse<OHLCVDataPoint[]>>(
-      `${API_ENDPOINTS.OHLCV_DATA}/${symbol}/${timeframe}`,
-      { params }
-    )
-    return handleApiResponse(response)
-  }
-
-  // Get OHLCV data with pagination
-  static async getOHLCVDataPaginated(
-    symbol: string,
-    timeframe: string,
-    params: Omit<DataQueryParams, 'symbol'>
-  ): Promise<{
-    data: OHLCVDataPoint[]
-    pagination: PaginatedResponse<OHLCVDataPoint>['pagination']
-  }> {
-    const response = await apiClient.get<PaginatedResponse<OHLCVDataPoint>>(
-      `${API_ENDPOINTS.OHLCV_DATA}/${symbol}/${timeframe}/paginated`,
-      { params }
-    )
-    return handlePaginatedResponse(response)
-  }
-
-  // Get trading sessions
-  static async getTradingSessions(symbol: string, date: string): Promise<TradingSession[]> {
-    const response = await apiClient.get<ApiResponse<TradingSession[]>>(
-      `/trading-sessions/${symbol}/${date}`
-    )
-    return handleApiResponse(response)
   }
 
   // Search symbols
-  static async searchSymbols(query: string): Promise<SymbolInfo[]> {
-    if (USE_MOCK_DATA) {
-      return MockDataService.searchSymbols(query)
+  static async searchSymbols(query: string, date?: string, type?: string): Promise<SymbolInfo[]> {
+    try {
+      const params = new URLSearchParams()
+      if (query) params.append('query', query)
+      if (date) params.append('date', date)
+      if (type) params.append('type', type)
+
+      const response = await apiClient.get<SymbolInfo[]>(`/api/symbols?${params.toString()}`)
+      return response.data
+    } catch (error) {
+      console.error('Error searching symbols:', error)
+      throw error
     }
-    const response = await apiClient.get<ApiResponse<SymbolInfo[]>>(
-      `/symbols/search?q=${encodeURIComponent(query)}`
-    )
-    return handleApiResponse(response)
   }
 
-  // Get data summary
-  static async getDataSummary(symbol: string, date: string): Promise<{
-    tickCount: number
-    ohlcvCount: number
-    startTime: string
-    endTime: string
-    totalVolume: number
-    totalTurnover: number
-  }> {
-    const response = await apiClient.get<ApiResponse<any>>(
-      `/data-summary/${symbol}/${date}`
-    )
-    return handleApiResponse(response)
+  // OHLCV data
+  static async getOHLCVData(
+    symbol: string, 
+    timeframe: string, 
+    params: { startDate: string; endDate: string }
+  ): Promise<OHLCVDataPoint[]> {
+    try {
+      const response = await apiClient.get<OHLCVDataPoint[]>(`/api/ohlcv/${symbol}`, {
+        params: {
+          timeframe,
+          start_date: params.startDate,
+          end_date: params.endDate
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching OHLCV data:', error)
+      throw error
+    }
+  }
+
+  // Tick data
+  static async getTickData(params: { symbol: string; startDate: string; endDate: string }): Promise<TickDataPoint[]> {
+    try {
+      const response = await apiClient.get<TickDataPoint[]>(`/api/tick/${params.symbol}`, {
+        params: {
+          start_date: params.startDate,
+          end_date: params.endDate
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error fetching tick data:', error)
+      throw error
+    }
+  }
+
+  // Health check
+  static async healthCheck(): Promise<{ message: string; status: string }> {
+    try {
+      const response = await apiClient.get('/')
+      return response.data
+    } catch (error) {
+      console.error('Health check failed:', error)
+      throw error
+    }
   }
 }
 
