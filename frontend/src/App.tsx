@@ -1,7 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import './App.css';
+import { FileTree } from './components/FileTree';
+import { QueryEditor } from './components/QueryEditor';
+import { ResultsTable } from './components/ResultsTable';
+import { ChartPanel } from './components/ChartPanel';
+import { fetchFileTree, runQuery } from './api';
+import { FileNode, QueryResponse } from './types';
+
+const DEFAULT_MAX_ROWS = 10000;
 
 function App() {
+  // File tree state
+  const [fileTree, setFileTree] = useState<FileNode[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  // Query state
+  const [query, setQuery] = useState<string>('');
+  const [queryLoading, setQueryLoading] = useState(false);
+  const [queryError, setQueryError] = useState<string | null>(null);
+  const [queryResult, setQueryResult] = useState<QueryResponse | null>(null);
+  // File tree loading
+  const [treeLoading, setTreeLoading] = useState(false);
+  const [treeError, setTreeError] = useState<string | null>(null);
+
+  // Fetch file tree on mount
+  useEffect(() => {
+    setTreeLoading(true);
+    fetchFileTree()
+      .then(setFileTree)
+      .catch(e => setTreeError('Failed to load file tree'))
+      .finally(() => setTreeLoading(false));
+  }, []);
+
+  // When file is selected, set default query
+  useEffect(() => {
+    if (selectedFile) {
+      setQuery(`SELECT * FROM '{file}' LIMIT ${DEFAULT_MAX_ROWS}`);
+      setQueryResult(null);
+      setQueryError(null);
+    }
+  }, [selectedFile]);
+
+  // Run query handler
+  const handleRunQuery = useCallback((q: string) => {
+    if (!selectedFile) return;
+    setQuery(q);
+    setQueryLoading(true);
+    setQueryError(null);
+    setQueryResult(null);
+    runQuery({ file_path: selectedFile, query: q })
+      .then(res => setQueryResult(res))
+      .catch(e => setQueryError(e?.response?.data?.detail || 'Query failed'))
+      .finally(() => setQueryLoading(false));
+  }, [selectedFile]);
+
   return (
     <div className="App" style={{ display: 'flex', height: '100vh', fontFamily: 'Inter, Arial, sans-serif', background: '#f7f9fb' }}>
       {/* Sidebar: File Browser */}
@@ -10,8 +61,13 @@ function App() {
           Parquet Explorer
         </div>
         <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-          {/* TODO: File tree component */}
-          <div style={{ opacity: 0.5, fontStyle: 'italic' }}>File browser goes here</div>
+          {treeLoading ? (
+            <div style={{ color: '#aaa', padding: 16 }}>Loading...</div>
+          ) : treeError ? (
+            <div style={{ color: '#d32f2f', padding: 16 }}>{treeError}</div>
+          ) : (
+            <FileTree tree={fileTree} selected={selectedFile} onSelect={setSelectedFile} />
+          )}
         </div>
       </aside>
 
@@ -19,18 +75,13 @@ function App() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Query Editor */}
         <section style={{ background: '#fff', padding: '18px 24px', borderBottom: '1px solid #e0e3eb', display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* TODO: Query editor component */}
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Write your DuckDB SQL query here..."
-              style={{ width: '100%', fontSize: 16, padding: 10, border: '1px solid #d1d5db', borderRadius: 6, background: '#f3f6fa' }}
-              disabled
-            />
-          </div>
-          <button style={{ background: '#0066ff', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 22px', fontWeight: 600, fontSize: 16, cursor: 'not-allowed', opacity: 0.6 }} disabled>
-            Run
-          </button>
+          <QueryEditor
+            file={selectedFile}
+            defaultQuery={query}
+            onRun={handleRunQuery}
+            loading={queryLoading}
+            error={queryError}
+          />
         </section>
 
         {/* Results and Chart */}
@@ -40,9 +91,13 @@ function App() {
             <div style={{ fontWeight: 600, fontSize: 18, padding: '16px 20px', borderBottom: '1px solid #f0f1f5', background: '#f7f9fb' }}>
               Query Results
             </div>
-            <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-              {/* TODO: Virtualized table component */}
-              <div style={{ opacity: 0.5, fontStyle: 'italic' }}>Results table goes here</div>
+            <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+              <ResultsTable
+                columns={queryResult?.columns || []}
+                rows={queryResult?.rows || []}
+                loading={queryLoading}
+                maxRows={DEFAULT_MAX_ROWS}
+              />
             </div>
           </section>
 
@@ -51,9 +106,12 @@ function App() {
             <div style={{ fontWeight: 600, fontSize: 18, padding: '16px 20px', borderBottom: '1px solid #f0f1f5', background: '#f7f9fb' }}>
               Visualization
             </div>
-            <div style={{ flex: 1, minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-              {/* TODO: ECharts component */}
-              <div style={{ opacity: 0.5, fontStyle: 'italic' }}>Chart goes here</div>
+            <div style={{ flex: 1, minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <ChartPanel
+                columns={queryResult?.columns || []}
+                rows={queryResult?.rows || []}
+                loading={queryLoading}
+              />
             </div>
           </section>
         </div>
